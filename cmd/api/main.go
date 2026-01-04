@@ -26,7 +26,7 @@ func main() {
 
 	flag.Parse()
 
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	app := &application{
 		logger: logger,
