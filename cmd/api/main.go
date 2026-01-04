@@ -10,12 +10,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/VJ-2303/jobhub/internal/data"
 	_ "github.com/lib/pq"
 )
 
 type application struct {
 	logger *slog.Logger
 	config config
+	models data.Models
 }
 
 type config struct {
@@ -56,6 +58,7 @@ func main() {
 	app := &application{
 		logger: logger,
 		config: cfg,
+		models: data.NewModels(db),
 	}
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.port),
