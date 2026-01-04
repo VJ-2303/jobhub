@@ -15,9 +15,10 @@ import (
 )
 
 type application struct {
-	logger *slog.Logger
-	config config
-	models data.Models
+	logger  *slog.Logger
+	config  config
+	models  data.Models
+	limiter *Limiter
 }
 
 type config struct {
@@ -56,9 +57,10 @@ func main() {
 	logger.Info("Database connection established")
 
 	app := &application{
-		logger: logger,
-		config: cfg,
-		models: data.NewModels(db),
+		logger:  logger,
+		config:  cfg,
+		models:  data.NewModels(db),
+		limiter: NewLimiter(1, 3),
 	}
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.port),

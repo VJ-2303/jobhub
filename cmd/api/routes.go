@@ -14,5 +14,5 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/user/register", app.registerUserHandler)
 
-	return app.loggingMiddleware(router)
+	return app.limit(app.loggingMiddleware(router))
 }
