@@ -13,6 +13,6 @@ func (app *application) loggingMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		app.logger.Printf("Request %s %s | Duration %s", r.Method, r.URL.Path, duration)
+		app.logger.Info("Request received", "method", r.Method, "uri", r.URL.Path, "duration", duration)
 	})
 }

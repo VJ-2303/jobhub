@@ -1,0 +1,16 @@
+meta {
+  name: Healthcheck
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:4000/v1/healthcheckk
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

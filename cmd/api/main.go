@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
 
 type application struct {
-	logger *log.Logger
+	logger *slog.Logger
 	config config
 }
 
@@ -26,7 +26,7 @@ func main() {
 
 	flag.Parse()
 
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	app := &application{
 		logger: logger,
@@ -36,10 +36,11 @@ func main() {
 		Addr:    fmt.Sprintf(":%d", cfg.port),
 		Handler: app.routes(),
 	}
-	logger.Printf("Starting %s server at %d", cfg.environment, cfg.port)
+	logger.Info("Starting %s server at %d", cfg.environment, cfg.port)
 
 	err := srv.ListenAndServe()
 	if err != nil {
-		logger.Fatal(err)
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 }
