@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/VJ-2303/jobhub/internal/validator"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,6 +29,25 @@ type User struct {
 type password struct {
 	plaintext *string
 	hash      []byte
+}
+
+func ValidateEmail(v *validator.Validator, email string) {
+	v.Check(email != "", "email", "must be provided")
+	v.Check(validator.Matches(email, validator.EmailRX), "email", "Must be an valid email")
+}
+
+func ValidateUser(v *validator.Validator, user *User) {
+	ValidateEmail(v, user.Email)
+
+	v.Check(user.Role != "", "role", "must be provided")
+	v.Check(validator.PermittedValue(user.Role, "EMPLOYER", "CANDIDATE"), "role", "role not permitted")
+	v.Check(*user.Password.plaintext != "", "password", "must be provided")
+	v.Check(len(*user.Password.plaintext) >= 8, "password", "must be atleast 8 characters")
+	v.Check(len(*user.Password.plaintext) <= 72, "password", "must not be greater than 72 characters")
+
+	if user.Password.hash == nil {
+		panic("missing password hash for user")
+	}
 }
 
 func (p *password) Set(plaintextpassword string) error {
