@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/VJ-2303/jobhub/internal/data"
@@ -22,6 +23,7 @@ type application struct {
 	models  data.Models
 	limiter *Limiter
 	mailer  *mailer.EmailService
+	wg      sync.WaitGroup
 }
 
 type config struct {

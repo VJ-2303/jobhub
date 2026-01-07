@@ -50,16 +50,16 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	EmailVerificationData := mailer.VerificationEmailData{
-		Email:     user.Email,
-		VerifyURL: fmt.Sprintf("http://localhost:4000/user/verify?token=%s", token),
-	}
-
-	err = app.mailer.SendVerificationEmail(user.Email, EmailVerificationData)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
+	app.background(func() {
+		data := mailer.VerificationEmailData{
+			Email:     user.Email,
+			VerifyURL: fmt.Sprintf("http://localhost:4000/users/verify?token=%s", token),
+		}
+		err := app.mailer.SendVerificationEmail(user.Email, data)
+		if err != nil {
+			app.logger.Error(err.Error())
+		}
+	})
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
 	if err != nil {
