@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/VJ-2303/jobhub/internal/data"
+	"github.com/VJ-2303/jobhub/internal/mailer"
 	"github.com/VJ-2303/jobhub/internal/validator"
 )
 
@@ -36,7 +38,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.models.Users.Insert(user)
+	token, err := app.models.Users.Insert(user)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateEmail):
@@ -45,6 +47,17 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
+		return
+	}
+
+	EmailVerificationData := mailer.VerificationEmailData{
+		Email:     user.Email,
+		VerifyURL: fmt.Sprintf("http://localhost:4000/user/verify?token=%s", token),
+	}
+
+	err = app.mailer.SendVerificationEmail(user.Email, EmailVerificationData)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

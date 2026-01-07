@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/VJ-2303/jobhub/internal/data"
+	"github.com/VJ-2303/jobhub/internal/mailer"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -19,6 +21,7 @@ type application struct {
 	config  config
 	models  data.Models
 	limiter *Limiter
+	mailer  *mailer.EmailService
 }
 
 type config struct {
@@ -30,9 +33,16 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  time.Duration
 	}
+	smtp struct {
+		port     int
+		username string
+		host     string
+		password string
+	}
 }
 
 func main() {
+	godotenv.Load()
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 4000, "HTTP server port")
@@ -42,6 +52,11 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "Postgresql max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "Postgresql max idle connections")
 	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "Postgresql connections max idle timeout")
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-user", "vanaraj1018@gmail.com", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-pass", os.Getenv("SMTPPASS"), "SMTP password")
 
 	flag.Parse()
 
@@ -54,6 +69,12 @@ func main() {
 	}
 	defer db.Close()
 
+	mailer, err := mailer.NewEmailService(cfg.smtp.port, cfg.smtp.host, cfg.smtp.username, cfg.smtp.password)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
 	logger.Info("Database connection established")
 
 	app := &application{
@@ -61,6 +82,7 @@ func main() {
 		config:  cfg,
 		models:  data.NewModels(db),
 		limiter: NewLimiter(1, 3),
+		mailer:  mailer,
 	}
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.port),

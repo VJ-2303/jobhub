@@ -77,7 +77,7 @@ type UserModel struct {
 	db *sql.DB
 }
 
-func (m UserModel) Insert(user *User) error {
+func (m UserModel) Insert(user *User) (string, error) {
 	query := `
 			INSERT INTO users (email, password_hash, role, is_verified)
 			VALUES ($1, $2, $3, $4)
@@ -85,17 +85,44 @@ func (m UserModel) Insert(user *User) error {
 	`
 	args := []any{user.Email, user.Password.hash, user.Role, user.IsVerified}
 
+	tx, err := m.db.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := m.db.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.version)
+	err = tx.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.version)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "users_email_key"):
-			return ErrDuplicateEmail
+			return "", ErrDuplicateEmail
 		default:
-			return err
+			return "", err
 		}
 	}
-	return nil
+
+	token, err := GenerateSecureToken(10)
+	if err != nil {
+		return "", nil
+	}
+	query = `
+		INSERT INTO verification_tokens (user_id, token, expires_at)
+		VALUES ($1, $2, $3)
+		    `
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = tx.ExecContext(ctx, query, user.ID, token, time.Now().Add(24*time.Hour))
+	if err != nil {
+		return "", err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
